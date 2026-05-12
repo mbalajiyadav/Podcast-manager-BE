@@ -1,14 +1,23 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const multer = require('multer');
 
-// S3 Client Configuration
-const s3Client = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.S3_ACCESS_KEY,
-        secretAccessKey: process.env.S3_SECRET_KEY
+// S3 Client Configuration (Lazy initialization to prevent crashes if env vars are missing)
+let s3Client;
+const getS3Client = () => {
+    if (!s3Client) {
+        if (!process.env.S3_ACCESS_KEY || !process.env.S3_SECRET_KEY) {
+            throw new Error('S3 Credentials are missing. Please check your environment variables.');
+        }
+        s3Client = new S3Client({
+            region: process.env.AWS_REGION || 'ap-southeast-2',
+            credentials: {
+                accessKeyId: process.env.S3_ACCESS_KEY,
+                secretAccessKey: process.env.S3_SECRET_KEY
+            }
+        });
     }
-});
+    return s3Client;
+};
 
 // Multer Configuration (Memory Storage)
 const storage = multer.memoryStorage();
@@ -18,6 +27,7 @@ const upload = multer({ storage: storage });
  * Generic function to upload a file to S3
  */
 const uploadToS3 = async (file, folder) => {
+    const client = getS3Client();
     const key = `${folder}/${Date.now()}-${file.originalname}`;
     const command = new PutObjectCommand({
         Bucket: process.env.AWS_BUCKET_NAME,
@@ -26,7 +36,7 @@ const uploadToS3 = async (file, folder) => {
         ContentType: file.mimetype,
     });
 
-    await s3Client.send(command);
+    await client.send(command);
     
     // Return the public URL (assuming bucket is public or using a CDN)
     return {

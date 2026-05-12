@@ -24,14 +24,10 @@ require('./models/Playlist');
 
 // Middlewares
 app.use(cors({
-    origin: '*',
+    origin: ['https://podcast-manager.netlify.app', 'http://localhost:5173'],
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-Requested-With',
-        'Accept'
-    ],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
 app.use(express.json());
