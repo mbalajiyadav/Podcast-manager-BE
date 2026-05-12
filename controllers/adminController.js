@@ -14,8 +14,8 @@ const getStats = async (req, res) => {
         const hostRole = await MasterRole.findOne({ role_code: 'HOST' });
         const listenerRole = await MasterRole.findOne({ role_code: 'LISTENER' });
         
-        const totalHosts = await User.countDocuments({ role_id: hostRole._id });
-        const totalListeners = await User.countDocuments({ role_id: listenerRole._id });
+        const totalHosts = hostRole ? await User.countDocuments({ role_id: hostRole._id }) : 0;
+        const totalListeners = listenerRole ? await User.countDocuments({ role_id: listenerRole._id }) : 0;
 
         res.json({
             totalEpisodes,
