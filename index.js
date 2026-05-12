@@ -11,6 +11,17 @@ const app = express();
 // Connect to Database
 connectDB();
 
+// Pre-load Models for Population
+require('./models/MasterRole');
+require('./models/MasterContentType');
+require('./models/MasterApprovalStatus');
+require('./models/User');
+require('./models/Channel');
+require('./models/Podcast');
+require('./models/PlayHistory');
+require('./models/EpisodeLike');
+require('./models/Playlist');
+
 // Middlewares
 app.use(cors({
     origin: '*',

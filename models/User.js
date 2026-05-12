@@ -53,8 +53,9 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-userSchema.pre('save', function() {
+userSchema.pre('save', function(next) {
     this.updated_on = Date.now();
+    next();
 });
 
 module.exports = mongoose.model('User', userSchema);

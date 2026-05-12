@@ -35,8 +35,9 @@ const channelSchema = new mongoose.Schema({
     }
 });
 
-channelSchema.pre('save', function() {
+channelSchema.pre('save', function(next) {
     this.updated_on = Date.now();
+    next();
 });
 
 module.exports = mongoose.model('Channel', channelSchema);
