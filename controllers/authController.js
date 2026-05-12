@@ -74,7 +74,7 @@ const loginUser = async (req, res) => {
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email_id: user.email_id,
-                role: user.role_id.role_code,
+                role: user.role_id ? user.role_id.role_code : 'LISTENER',
                 token: generateToken(user._id),
             });
         } else {
