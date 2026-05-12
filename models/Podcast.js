@@ -65,9 +65,8 @@ const podcastSchema = new mongoose.Schema({
 
 podcastSchema.index({ title: 'text', description: 'text' });
 
-podcastSchema.pre('save', function(next) {
+podcastSchema.pre('save', function() {
     this.updated_on = Date.now();
-    next();
 });
 
 module.exports = mongoose.model('Podcast', podcastSchema);
