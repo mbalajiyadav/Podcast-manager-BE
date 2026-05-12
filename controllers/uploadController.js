@@ -113,9 +113,43 @@ const uploadAvatar = async (req, res) => {
     }
 };
 
+/**
+ * Generate a pre-signed URL for direct browser upload to S3
+ */
+const getPresignedUrl = async (req, res) => {
+    const { fileName, fileType } = req.query;
+    if (!fileName || !fileType) {
+        return res.status(400).json({ message: 'fileName and fileType are required' });
+    }
+
+    try {
+        const key = `audio/${req.user._id}/${Date.now()}-${fileName}`;
+        const command = new PutObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: key,
+            ContentType: fileType
+        });
+
+        // Using @aws-sdk/s3-request-presigner
+        const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+        const client = getS3Client();
+        const url = await getSignedUrl(client, command, { expiresIn: 3600 });
+
+        res.json({
+            uploadUrl: url,
+            key: key,
+            publicUrl: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-southeast-2'}.amazonaws.com/${key}`
+        });
+    } catch (error) {
+        console.error('PRESIGNED URL ERROR:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
-    upload, // Exporting multer instance to use in routes
+    upload, 
     uploadAudio,
     uploadImage,
-    uploadAvatar
+    uploadAvatar,
+    getPresignedUrl
 };
