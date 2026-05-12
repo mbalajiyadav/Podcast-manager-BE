@@ -26,12 +26,20 @@ const protect = async (req, res, next) => {
 const authorize = (...roles) => {
     return (req, res, next) => {
         if (!req.user || !req.user.role_id) {
-            return res.status(401).json({ message: 'Not authorized, no role assigned' });
+            return res.status(403).json({ message: 'No role assigned to user' });
+        }
+        
+        const userRole = req.user.role_id.role_code;
+        
+        // ADMIN bypasses all role checks
+        if (userRole === 'ADMIN') {
+            return next();
         }
 
-        const userRole = req.user.role_id.role_code;
         if (!roles.includes(userRole)) {
-            return res.status(403).json({ message: `Role ${userRole} is not authorized to access this route` });
+            return res.status(403).json({
+                message: `User role ${userRole} is not authorized to access this route`
+            });
         }
         next();
     };

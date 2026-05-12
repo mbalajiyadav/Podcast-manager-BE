@@ -44,11 +44,23 @@ const uploadAudio = async (req, res) => {
     }
 
     try {
+        console.log(`Attempting S3 upload for user ${req.user._id}...`);
         const folder = `audio/${req.user._id}`;
         const result = await uploadToS3(req.file, folder);
+        console.log(`S3 upload successful: ${result.url}`);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('S3 UPLOAD ERROR:', {
+            message: error.message,
+            code: error.code,
+            region: process.env.AWS_REGION,
+            bucket: process.env.AWS_BUCKET_NAME
+        });
+        res.status(500).json({ 
+            message: 'Failed to upload to S3', 
+            error: error.message,
+            tip: 'Check if your AWS credentials have s3:PutObject permission and the bucket name/region are correct.'
+        });
     }
 };
 

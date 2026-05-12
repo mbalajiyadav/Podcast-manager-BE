@@ -11,20 +11,36 @@ const Channel = require('../models/Channel');
 // @route   POST /api/episodes
 // @access  Host
 const uploadEpisode = async (req, res) => {
-    const { channel_id, title, description, content_type_id, audio_s3_key, thumbnail_key, duration_in_seconds } = req.body;
+    const { channel_id, title, description, category_name, audio_s3_key, thumbnail_key, duration_in_seconds } = req.body;
 
     try {
         const pendingStatus = await MasterApprovalStatus.findOne({ approval_code: 'PENDING' });
+        
+        // Find content type by name if ID is not provided
+        let contentTypeId = req.body.content_type_id;
+        if (!contentTypeId && category_name) {
+            const contentType = await MasterContentType.findOne({ 
+                type_description: new RegExp(category_name, 'i') 
+            });
+            if (contentType) contentTypeId = contentType._id;
+        }
+
+        // Auto-assign channel if not provided (find user's first channel)
+        let finalChannelId = channel_id;
+        if (!finalChannelId) {
+            const userChannel = await Channel.findOne({ user_id: req.user._id });
+            if (userChannel) finalChannelId = userChannel._id;
+        }
 
         const episode = await Podcast.create({
-            channel_id,
+            channel_id: finalChannelId,
             user_id: req.user._id,
             title,
             description,
-            content_type_id,
+            content_type_id: contentTypeId,
             audio_s3_key,
             thumbnail_key,
-            duration_in_seconds,
+            duration_in_seconds: duration_in_seconds || 300,
             approval_status_id: pendingStatus._id
         });
 
