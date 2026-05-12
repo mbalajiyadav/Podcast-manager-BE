@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Podcast Management Platform — MongoDB Schema Reference</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 14px; color: #1a1a1a; background: #fff; padding: 32px; }
+  h1 { font-size: 28px; color: #1E3A5F; margin-bottom: 6px; }
+  .subtitle { color: #555; font-size: 14px; margin-bottom: 4px; }
+  .meta { color: #888; font-size: 13px; font-style: italic; margin-bottom: 32px; }
+  hr { border: none; border-top: 2px solid #1E3A5F; margin: 32px 0; }
+
+  h2 { font-size: 20px; color: #2D6A9F; margin: 28px 0 6px; }
+  h3 { font-size: 15px; color: #1E3A5F; margin: 20px 0 6px; }
+  p.desc { color: #555; font-size: 13px; font-style: italic; margin-bottom: 10px; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px; }
+  thead tr { background: #1E3A5F; color: #fff; }
+  thead th { padding: 9px 12px; text-align: left; font-weight: 600; }
+  tbody tr:nth-child(even) { background: #F0F4F8; }
+  tbody tr:nth-child(odd)  { background: #fff; }
+  td { padding: 8px 12px; border: 1px solid #d0d8e4; vertical-align: top; line-height: 1.5; }
+  td.field  { font-family: monospace; font-size: 12px; color: #1a1a1a; font-weight: 600; white-space: nowrap; }
+  td.type   { font-family: monospace; font-size: 12px; color: #5C3D99; font-weight: 600; white-space: nowrap; }
+  td.dbtype { font-family: monospace; font-size: 12px; color: #185FA5; white-space: nowrap; }
+  td.desc-col { color: #333; }
+  td.constraints { color: #7A3D00; font-style: italic; font-size: 12px; white-space: nowrap; }
+  td.s3yes  { color: #0F6E56; font-weight: 700; text-align: center; }
+  td.pk     { background: #fff8e1 !important; }
+
+  .section-label {
+    display: inline-block;
+    background: #2D6A9F;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .new-tag {
+    display: inline-block;
+    background: #d32f2f;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+    letter-spacing: .03em;
+  }
+
+  .index-table td { font-family: monospace; font-size: 12px; }
+  .s3-table td.pattern { font-family: monospace; font-size: 12px; color: #185FA5; }
+
+  .legend-table td:first-child { font-family: monospace; font-weight: 700; font-size: 12px; white-space: nowrap; }
+
+  .toc { background: #F0F4F8; border: 1px solid #d0d8e4; border-radius: 6px; padding: 16px 20px; margin-bottom: 32px; display: inline-block; min-width: 320px; }
+  .toc h3 { color: #1E3A5F; margin-bottom: 10px; font-size: 14px; }
+  .toc ol { padding-left: 20px; line-height: 2; }
+  .toc a { color: #2D6A9F; text-decoration: none; font-size: 13px; }
+  .toc a:hover { text-decoration: underline; }
+
+  .relationship-box { background: #eef4fb; border: 1px solid #b3cde8; border-radius: 6px; padding: 14px 18px; margin-bottom: 24px; font-size: 13px; line-height: 1.9; }
+  .relationship-box code { background: #dbe8f5; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; color: #1a1a1a; }
+
+  .note { background: #fff8e1; border-left: 4px solid #f9a825; padding: 10px 14px; margin: 12px 0 20px; font-size: 13px; color: #5a3e00; border-radius: 0 4px 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>Podcast Management Platform</h1>
+<p class="subtitle">MongoDB Schema Reference — MERN Stack</p>
+<p class="meta">Tech Stack: Node.js · Express · React · MongoDB Atlas · AWS S3 | Auth: JWT</p>
+
+<div class="toc">
+  <h3>Table of Contents</h3>
+  <ol>
+    <li><a href="#legend">Legend &amp; Data Types</a></li>
+    <li><a href="#relationships">Collection Relationships</a></li>
+    <li><a href="#users">users</a></li>
+    <li><a href="#master_roles">master_roles</a></li>
+    <li><a href="#master_content_types">master_content_types</a></li>
+    <li><a href="#master_approval_statuses">master_approval_statuses</a></li>
+    <li><a href="#channels">channels</a></li>
+    <li><a href="#podcasts">podcasts (episodes)</a></li>
+    <li><a href="#play_history">play_history</a></li>
+    <li><a href="#playlists">playlists</a></li>
+    <li><a href="#episode_likes">episode_likes</a></li>
+    <li><a href="#indexes">Atlas Indexes</a></li>
+    <li><a href="#s3">AWS S3 Key Conventions</a></li>
+  </ol>
+</div>
+
+<hr>
+
+<!-- LEGEND -->
+<h2 id="legend">Legend &amp; Data Types</h2>
+<table class="legend-table">
+  <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>PK</td><td>Primary key — MongoDB auto-generates ObjectId as <code>_id</code></td></tr>
+    <tr><td>FK</td><td>Foreign key — store as ObjectId referencing another collection's <code>_id</code></td></tr>
+    <tr><td>required</td><td>Mongoose schema field has <code>required: true</code></td></tr>
+    <tr><td>unique</td><td>Mongoose schema field has <code>unique: true</code> (also creates a MongoDB index automatically)</td></tr>
+    <tr><td>default: x</td><td>Mongoose schema field has <code>default: x</code></td></tr>
+    <tr><td>ObjectId</td><td>MongoDB BSON ObjectId — use <code>mongoose.Schema.Types.ObjectId</code> in Mongoose</td></tr>
+    <tr><td>String</td><td>JavaScript / MongoDB String (UTF-8)</td></tr>
+    <tr><td>Number / Int32</td><td>JavaScript Number — plain <code>Number</code> type in Mongoose</td></tr>
+    <tr><td>Boolean</td><td>JavaScript Boolean — <code>Boolean</code> in Mongoose</td></tr>
+    <tr><td>Date</td><td>JavaScript Date — <code>Date</code> in Mongoose</td></tr>
+    <tr><td>S3 Key</td><td>Stores only the AWS S3 object key (NOT the full URL). Generate a pre-signed URL at request time in Express.</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- RELATIONSHIPS -->
+<h2 id="relationships">Collection Relationships</h2>
+<div class="relationship-box">
+  <strong>users</strong> → role_id → <code>master_roles._id</code><br>
+  <strong>channels</strong> → host_id → <code>users._id</code><br>
+  <strong>channels</strong> → category_id → <code>master_content_types._id</code><br>
+  <strong>podcasts</strong> → user_id → <code>users._id</code> (uploader/host)<br>
+  <strong>podcasts</strong> → channel_id → <code>channels._id</code><br>
+  <strong>podcasts</strong> → content_type_id → <code>master_content_types._id</code><br>
+  <strong>podcasts</strong> → approval_status_id → <code>master_approval_statuses._id</code><br>
+  <strong>play_history</strong> → podcast_id → <code>podcasts._id</code><br>
+  <strong>play_history</strong> → user_id → <code>users._id</code><br>
+  <strong>playlists</strong> → user_id → <code>users._id</code><br>
+  <strong>playlists</strong> → podcast_id → <code>podcasts._id</code><br>
+  <strong>episode_likes</strong> → user_id → <code>users._id</code><br>
+  <strong>episode_likes</strong> → podcast_id → <code>podcasts._id</code>
+</div>
+
+<hr>
+
+<!-- USERS -->
+<h2 id="users">1. users</h2>
+<span class="section-label">Collection</span>
+<p class="desc">Stores all platform users — Admins, Hosts, and Listeners. The role_id FK determines access level.</p>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key — auto-generated by MongoDB</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">first_name</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">User's first name</td><td class="constraints">required</td><td></td></tr>
+    <tr><td class="field">last_name</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">User's last name</td><td class="constraints">required</td><td></td></tr>
+    <tr><td class="field">email_id</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Login email address — must be unique across the platform</td><td class="constraints">required, unique</td><td></td></tr>
+    <tr><td class="field">password_hash</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Bcrypt hashed password — NEVER store plain text</td><td class="constraints">required</td><td></td></tr>
+    <tr><td class="field">phone_number</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Contact phone number</td><td class="constraints">optional</td><td></td></tr>
+    <tr><td class="field">age</td><td class="type">Number</td><td class="dbtype">Int32</td><td class="desc-col">User age in years</td><td class="constraints">optional</td><td></td></tr>
+    <tr><td class="field">role_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → master_roles._id (ADMIN / HOST / LISTENER)</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">profile_image_key</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">S3 object key for avatar — e.g. avatars/userId/avatar.jpg</td><td class="constraints">optional</td><td class="s3yes">Yes</td></tr>
+    <tr><td class="field">is_active</td><td class="type">Boolean</td><td class="dbtype">Boolean</td><td class="desc-col">Admin can block or activate accounts. Default true.</td><td class="constraints">default: true</td><td></td></tr>
+    <tr><td class="field">last_login</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Timestamp of last successful login</td><td class="constraints">optional</td><td></td></tr>
+    <tr><td class="field">created_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Account creation timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+    <tr><td class="field">updated_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Last profile update timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+    <tr><td class="field">created_by</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → users._id — for accounts created by an admin</td><td class="constraints">optional, FK</td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- MASTER ROLES -->
+<h2 id="master_roles">2. master_roles</h2>
+<span class="section-label">Lookup / Seed</span>
+<p class="desc">Lookup table for user roles. Seed on app startup with: ADMIN, HOST, LISTENER.</p>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">role_code</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Short code — ADMIN | HOST | LISTENER</td><td class="constraints">required, unique</td><td></td></tr>
+    <tr><td class="field">role_description</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Human-readable description of the role</td><td class="constraints">required</td><td></td></tr>
+    <tr><td class="field">created_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Record creation timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- MASTER CONTENT TYPES -->
+<h2 id="master_content_types">3. master_content_types</h2>
+<span class="section-label">Lookup / Seed</span>
+<p class="desc">Episode category lookup. Seed all 12+ categories from spec: Music, True Crime, Comedy, News, Health, Business, History, Self-improvement, Sports, Storytelling, Religion, DJ Mixes.</p>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">type_code</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Short code — e.g. MUSIC, TRUE_CRIME, COMEDY</td><td class="constraints">required, unique</td><td></td></tr>
+    <tr><td class="field">type_description</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Full category label shown in UI</td><td class="constraints">required</td><td></td></tr>
+    <tr><td class="field">is_active</td><td class="type">Boolean</td><td class="dbtype">Boolean</td><td class="desc-col">Admin can enable or disable a category</td><td class="constraints">default: true</td><td></td></tr>
+    <tr><td class="field">created_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Record creation timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+    <tr><td class="field">updated_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Last update timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- MASTER APPROVAL STATUSES -->
+<h2 id="master_approval_statuses">4. master_approval_statuses</h2>
+<span class="section-label">Lookup / Seed</span>
+<p class="desc">Lookup for episode approval workflow states. Seed with: PENDING, APPROVED, REJECTED.</p>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">approval_code</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">PENDING | APPROVED | REJECTED</td><td class="constraints">required, unique</td><td></td></tr>
+    <tr><td class="field">approval_description</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Human-readable label for this status</td><td class="constraints">required</td><td></td></tr>
+    <tr><td class="field">created_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Record creation timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- CHANNELS -->
+<h2 id="channels">5. channels <span class="new-tag">NEW — Missing from ERD</span></h2>
+<span class="section-label">Collection</span>
+<p class="desc">A Host's podcast show. Groups multiple episodes under one channel. The spec says "Host creates a podcast channel" — this collection was missing from the original ERD.</p>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">host_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → users._id — must be a HOST role user</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">name</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Channel / show display name</td><td class="constraints">required</td><td></td></tr>
+    <tr><td class="field">description</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">About this channel / show</td><td class="constraints">optional</td><td></td></tr>
+    <tr><td class="field">cover_image_key</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">S3 object key for cover art — e.g. covers/channels/channelId/cover.jpg</td><td class="constraints">optional</td><td class="s3yes">Yes</td></tr>
+    <tr><td class="field">category_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → master_content_types._id — primary genre of the channel</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">is_active</td><td class="type">Boolean</td><td class="dbtype">Boolean</td><td class="desc-col">Soft-delete flag — false means channel is deleted</td><td class="constraints">default: true</td><td></td></tr>
+    <tr><td class="field">created_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Channel creation timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+    <tr><td class="field">updated_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Last update timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- PODCASTS -->
+<h2 id="podcasts">6. podcasts &nbsp;<small style="font-size:14px;color:#555;">(episodes)</small></h2>
+<span class="section-label">Collection</span>
+<p class="desc">Individual podcast episodes uploaded by Hosts. Maps to the Podcasts table in your ERD, extended with all missing required fields. Default approval_status is PENDING on upload.</p>
+<div class="note">Business rule: Episodes can only be deleted by the Host when approval_status is PENDING or REJECTED. APPROVED episodes cannot be deleted. Enforce this in the Express route handler.</div>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">channel_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → channels._id — the parent show this episode belongs to</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">user_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → users._id — the Host who uploaded this episode</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">title</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Episode title — used in search index</td><td class="constraints">required</td><td></td></tr>
+    <tr><td class="field">description</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Episode description / show notes</td><td class="constraints">optional</td><td></td></tr>
+    <tr><td class="field">content_type_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → master_content_types._id — episode category</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">approval_status_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → master_approval_statuses._id — set to PENDING on upload</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">audio_s3_key</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">S3 object key for the audio file — e.g. audio/userId/episodeId.mp3</td><td class="constraints">required</td><td class="s3yes">Yes</td></tr>
+    <tr><td class="field">thumbnail_key</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">S3 object key for episode cover thumbnail</td><td class="constraints">optional</td><td class="s3yes">Yes</td></tr>
+    <tr><td class="field">content_url</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">External audio URL — use this OR audio_s3_key, not both</td><td class="constraints">optional</td><td></td></tr>
+    <tr><td class="field">duration_in_seconds</td><td class="type">Number</td><td class="dbtype">Int32</td><td class="desc-col">Episode length in seconds — set after S3 upload completes</td><td class="constraints">optional, default: 0</td><td></td></tr>
+    <tr><td class="field">likes_count</td><td class="type">Number</td><td class="dbtype">Int32</td><td class="desc-col">Denormalised like counter — increment/decrement when episode_likes row is added/removed</td><td class="constraints">default: 0</td><td></td></tr>
+    <tr><td class="field">views_count</td><td class="type">Number</td><td class="dbtype">Int32</td><td class="desc-col">Denormalised play counter — increment each time a play_history row is inserted</td><td class="constraints">default: 0</td><td></td></tr>
+    <tr><td class="field">rejection_reason</td><td class="type">String</td><td class="dbtype">String</td><td class="desc-col">Admin fills this field when rejecting an episode — shown to Host</td><td class="constraints">optional</td><td></td></tr>
+    <tr><td class="field">created_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Upload timestamp</td><td class="constraints">default: Date.now</td><td></td></tr>
+    <tr><td class="field">updated_on</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Last edited timestamp — update on any PUT/PATCH</td><td class="constraints">default: Date.now</td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- PLAY HISTORY -->
+<h2 id="play_history">7. play_history <span class="new-tag">NEW — Missing from ERD</span></h2>
+<span class="section-label">Collection</span>
+<p class="desc">One row per play event. Used to increment views_count on podcasts and to support playback resume. Do not rely on just the views_count counter — this log gives per-user progress tracking.</p>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">podcast_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → podcasts._id — which episode was played</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">user_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → users._id — null if anonymous / unauthenticated play</td><td class="constraints">optional, FK</td><td></td></tr>
+    <tr><td class="field">progress_seconds</td><td class="type">Number</td><td class="dbtype">Int32</td><td class="desc-col">Playback position in seconds when user stopped — enables resume from last position</td><td class="constraints">default: 0</td><td></td></tr>
+    <tr><td class="field">completed</td><td class="type">Boolean</td><td class="dbtype">Boolean</td><td class="desc-col">True if user played past 90% of episode duration</td><td class="constraints">default: false</td><td></td></tr>
+    <tr><td class="field">played_at</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Timestamp when the play event was fired from the client</td><td class="constraints">default: Date.now</td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- PLAYLISTS -->
+<h2 id="playlists">8. playlists <span class="new-tag">NEW — Missing from ERD</span></h2>
+<span class="section-label">Collection</span>
+<p class="desc">Listener's saved / bookmarked episodes. One row per unique user + episode pair. Used to build the personal playlist view for Listeners.</p>
+<div class="note">Add a unique compound index on { user_id: 1, podcast_id: 1 } to prevent duplicate saves at the database level.</div>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">user_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → users._id — the Listener who saved the episode</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">podcast_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → podcasts._id — the saved episode</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">saved_at</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Timestamp when the Listener saved the episode — sort playlist by this field</td><td class="constraints">default: Date.now</td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- EPISODE LIKES -->
+<h2 id="episode_likes">9. episode_likes <span class="new-tag">NEW — Missing from ERD</span></h2>
+<span class="section-label">Collection</span>
+<p class="desc">Normalised likes table — one row per user + episode pair. Prevents double-likes and supports unlike. When a row is inserted, also increment podcasts.likes_count. When deleted, decrement it.</p>
+<div class="note">Add a unique compound index on { user_id: 1, podcast_id: 1 } so the database enforces no duplicate likes even under concurrent requests.</div>
+<table>
+  <thead>
+    <tr><th>Field Name</th><th>JS Type</th><th>MongoDB Type</th><th>Description</th><th>Constraints</th><th>S3?</th></tr>
+  </thead>
+  <tbody>
+    <tr class="pk"><td class="field">_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">Primary key</td><td class="constraints">PK, auto</td><td></td></tr>
+    <tr><td class="field">podcast_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → podcasts._id — the liked episode</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">user_id</td><td class="type">ObjectId</td><td class="dbtype">ObjectId</td><td class="desc-col">FK → users._id — the user who liked</td><td class="constraints">required, FK</td><td></td></tr>
+    <tr><td class="field">liked_at</td><td class="type">Date</td><td class="dbtype">Date</td><td class="desc-col">Timestamp of the like action</td><td class="constraints">default: Date.now</td><td></td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- INDEXES -->
+<h2 id="indexes">MongoDB Atlas — Recommended Indexes</h2>
+<p class="desc" style="margin-bottom:12px">Create these via Atlas UI or add to your seed/init script using createIndex(). Unique indexes also enforce data integrity at the DB level.</p>
+<table class="index-table">
+  <thead>
+    <tr><th>Collection</th><th>Index Definition</th><th>Type</th><th>Unique</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>users</td><td>{ email_id: 1 }</td><td>Single</td><td>Yes</td><td>Fast login lookup + enforce unique email</td></tr>
+    <tr><td>users</td><td>{ role_id: 1 }</td><td>Single</td><td>No</td><td>Filter users by role (admin dashboard)</td></tr>
+    <tr><td>channels</td><td>{ host_id: 1 }</td><td>Single</td><td>No</td><td>Fetch all channels for a Host</td></tr>
+    <tr><td>podcasts</td><td>{ approval_status_id: 1, content_type_id: 1 }</td><td>Compound</td><td>No</td><td>Browse approved episodes filtered by category</td></tr>
+    <tr><td>podcasts</td><td>{ title: "text", description: "text" }</td><td>Text</td><td>No</td><td>Full-text search by title or description</td></tr>
+    <tr><td>podcasts</td><td>{ channel_id: 1 }</td><td>Single</td><td>No</td><td>Get all episodes for a channel</td></tr>
+    <tr><td>podcasts</td><td>{ user_id: 1 }</td><td>Single</td><td>No</td><td>Host dashboard — get own episodes</td></tr>
+    <tr><td>play_history</td><td>{ podcast_id: 1 }</td><td>Single</td><td>No</td><td>Count plays per episode for stats</td></tr>
+    <tr><td>play_history</td><td>{ user_id: 1, podcast_id: 1 }</td><td>Compound</td><td>No</td><td>Get user's last progress on a specific episode (resume)</td></tr>
+    <tr><td>playlists</td><td>{ user_id: 1 }</td><td>Single</td><td>No</td><td>Get a Listener's full playlist</td></tr>
+    <tr><td>playlists</td><td>{ user_id: 1, podcast_id: 1 }</td><td>Compound</td><td>Yes</td><td>Prevent duplicate saves</td></tr>
+    <tr><td>episode_likes</td><td>{ user_id: 1, podcast_id: 1 }</td><td>Compound</td><td>Yes</td><td>Prevent double-likes + fast unlike lookup</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- S3 -->
+<h2 id="s3">AWS S3 — Key Naming Convention</h2>
+<p class="desc" style="margin-bottom:12px">Store ONLY the S3 object key in MongoDB (not the full URL). In Express, call getSignedUrlPromise() to generate a temporary pre-signed URL before returning the response to the client.</p>
+<table class="s3-table">
+  <thead>
+    <tr><th>Asset Type</th><th>S3 Key Pattern</th><th>Bucket ACL</th><th>Pre-signed TTL</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Audio file</td><td class="pattern">audio/{userId}/{episodeId}.mp3</td><td>Private</td><td>15–60 minutes</td></tr>
+    <tr><td>Episode thumbnail</td><td class="pattern">covers/episodes/{episodeId}/thumb.jpg</td><td>Public-read</td><td>No expiry (CDN)</td></tr>
+    <tr><td>Channel cover art</td><td class="pattern">covers/channels/{channelId}/cover.jpg</td><td>Public-read</td><td>No expiry (CDN)</td></tr>
+    <tr><td>User avatar</td><td class="pattern">avatars/{userId}/avatar.jpg</td><td>Public-read</td><td>No expiry (CDN)</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <strong>S3 upload flow:</strong> Client calls <code>POST /api/upload/audio-presign</code> → Express generates pre-signed PUT URL → Client uploads file directly to S3 → Client sends the returned S3 key back to Express → Express saves the key in MongoDB. Never stream file bytes through your Node.js server.
+</div>
+
+<hr>
+<p style="color:#aaa;font-size:12px;text-align:center;margin-top:16px">Podcast Management Platform — Schema Reference v1.0 &nbsp;|&nbsp; 9 collections &nbsp;|&nbsp; MongoDB Atlas + AWS S3</p>
+
+</body>
+</html>

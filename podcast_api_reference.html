@@ -1,0 +1,211 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1rem 0}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.filter-btn{font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all .15s}
+.filter-btn.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.section{margin-bottom:28px}
+.section-header{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.route{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.route:hover{border-color:var(--color-border-secondary)}
+.method{font-family:var(--font-mono);font-size:11px;font-weight:500;padding:2px 7px;border-radius:4px;white-space:nowrap;min-width:52px;text-align:center;margin-top:1px}
+.m-get{background:#E1F5EE;color:#085041}
+.m-post{background:#E6F1FB;color:#0C447C}
+.m-put{background:#FAEEDA;color:#633806}
+.m-patch{background:#EEEDFE;color:#3C3489}
+.m-delete{background:#FCEBEB;color:#791F1F}
+@media(prefers-color-scheme:dark){
+  .m-get{background:#04342C;color:#9FE1CB}
+  .m-post{background:#042C53;color:#B5D4F4}
+  .m-put{background:#412402;color:#FAC775}
+  .m-patch{background:#26215C;color:#CECBF6}
+  .m-delete{background:#501313;color:#F7C1C1}
+}
+.route-info{flex:1;min-width:0}
+.route-path{font-family:var(--font-mono);font-size:12px;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route-desc{font-size:12px;color:var(--color-text-secondary);margin-top:2px;line-height:1.4}
+.route-right{display:flex;gap:5px;align-items:center;flex-shrink:0}
+.badge{font-size:10px;font-weight:500;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.b-admin{background:#FAECE7;color:#712B13}
+.b-host{background:#E1F5EE;color:#085041}
+.b-listener{background:#E6F1FB;color:#0C447C}
+.b-public{background:#F1EFE8;color:#444441}
+.b-all{background:#EEEDFE;color:#3C3489}
+@media(prefers-color-scheme:dark){
+  .b-admin{background:#4A1B0C;color:#F0997B}
+  .b-host{background:#04342C;color:#9FE1CB}
+  .b-listener{background:#042C53;color:#85B7EB}
+  .b-public{background:#2C2C2A;color:#D3D1C7}
+  .b-all{background:#26215C;color:#AFA9EC}
+}
+.s3-note{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 12px;margin-bottom:10px}
+.count-bar{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.count-item{font-size:12px;color:var(--color-text-secondary)}
+.count-item span{font-weight:500;color:var(--color-text-primary)}
+.hidden{display:none}
+</style>
+
+<div class="wrap">
+<h2 style="font-size:18px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px">API route reference</h2>
+<p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:16px">Podcast Management Platform — MERN / Express</p>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filter('all')">All routes</button>
+  <button class="filter-btn" onclick="filter('public')">Public</button>
+  <button class="filter-btn" onclick="filter('admin')">Admin</button>
+  <button class="filter-btn" onclick="filter('host')">Host</button>
+  <button class="filter-btn" onclick="filter('listener')">Listener</button>
+</div>
+
+<div class="count-bar">
+  <div class="count-item">Total <span id="total-count">0</span></div>
+  <div class="count-item"><span style="color:#085041">GET</span> <span id="get-count">0</span></div>
+  <div class="count-item"><span style="color:#0C447C">POST</span> <span id="post-count">0</span></div>
+  <div class="count-item"><span style="color:#633806">PUT</span> <span id="put-count">0</span></div>
+  <div class="count-item"><span style="color:#3C3489">PATCH</span> <span id="patch-count">0</span></div>
+  <div class="count-item"><span style="color:#791F1F">DELETE</span> <span id="del-count">0</span></div>
+</div>
+
+<div id="routes-container"></div>
+</div>
+
+<script>
+const routes = [
+  {section:"Auth", routes:[
+    {m:"POST", path:"/api/auth/register", desc:"Register new user (listener or host)", role:"public"},
+    {m:"POST", path:"/api/auth/login", desc:"Login — returns JWT token", role:"public"},
+    {m:"POST", path:"/api/auth/logout", desc:"Invalidate token / clear cookie", role:"all"},
+    {m:"GET",  path:"/api/auth/me", desc:"Get current logged-in user profile", role:"all"},
+    {m:"PUT",  path:"/api/auth/me", desc:"Update own profile (name, avatar, phone)", role:"all"},
+    {m:"POST", path:"/api/auth/change-password", desc:"Change own password", role:"all"},
+  ]},
+  {section:"Users — admin only", routes:[
+    {m:"GET",    path:"/api/users", desc:"List all users with filters (role, status, search)", role:"admin"},
+    {m:"GET",    path:"/api/users/:id", desc:"Get single user details", role:"admin"},
+    {m:"PATCH",  path:"/api/users/:id/status", desc:"Activate or block a user account", role:"admin"},
+    {m:"DELETE", path:"/api/users/:id", desc:"Delete user account", role:"admin"},
+  ]},
+  {section:"Channels / Shows", routes:[
+    {m:"POST",   path:"/api/channels", desc:"Create a new podcast channel / show", role:"host"},
+    {m:"GET",    path:"/api/channels", desc:"List all channels (public — for browsing)", role:"public"},
+    {m:"GET",    path:"/api/channels/:id", desc:"Get channel details + episode list", role:"public"},
+    {m:"PUT",    path:"/api/channels/:id", desc:"Update channel info (name, description, cover)", role:"host"},
+    {m:"DELETE", path:"/api/channels/:id", desc:"Delete channel (host owns it)", role:"host"},
+    {m:"GET",    path:"/api/channels/my", desc:"Get own channels (host dashboard)", role:"host"},
+  ]},
+  {section:"Episodes / Podcasts", routes:[
+    {m:"POST",   path:"/api/episodes", desc:"Upload new episode — status defaults to PENDING", role:"host"},
+    {m:"GET",    path:"/api/episodes", desc:"Browse approved episodes (filter: category, search, channel)", role:"public"},
+    {m:"GET",    path:"/api/episodes/:id", desc:"Get single episode detail (approved only for listeners)", role:"public"},
+    {m:"PUT",    path:"/api/episodes/:id", desc:"Edit episode metadata (title, description, category)", role:"host"},
+    {m:"DELETE", path:"/api/episodes/:id", desc:"Delete episode — only allowed when PENDING or REJECTED", role:"host"},
+    {m:"GET",    path:"/api/episodes/my", desc:"Get all own episodes with status (host dashboard)", role:"host"},
+    {m:"GET",    path:"/api/episodes/pending", desc:"List all PENDING episodes for review", role:"admin"},
+  ]},
+  {section:"Episode approval — admin", routes:[
+    {m:"PATCH", path:"/api/episodes/:id/approve", desc:"Approve an episode — sets status to APPROVED", role:"admin"},
+    {m:"PATCH", path:"/api/episodes/:id/reject", desc:"Reject with reason — sets status to REJECTED", role:"admin"},
+  ]},
+  {section:"Play tracking", routes:[
+    {m:"POST", path:"/api/episodes/:id/play", desc:"Log a play event — increments play count", role:"all"},
+    {m:"GET",  path:"/api/episodes/:id/stats", desc:"Get play count + likes for an episode", role:"host"},
+    {m:"PATCH",path:"/api/episodes/:id/progress", desc:"Save playback progress position in seconds", role:"listener"},
+  ]},
+  {section:"Likes", routes:[
+    {m:"POST",   path:"/api/episodes/:id/like", desc:"Like an episode (idempotent — no double like)", role:"listener"},
+    {m:"DELETE", path:"/api/episodes/:id/like", desc:"Unlike an episode", role:"listener"},
+  ]},
+  {section:"Playlist — saved episodes", routes:[
+    {m:"GET",    path:"/api/playlist", desc:"Get own saved episodes list", role:"listener"},
+    {m:"POST",   path:"/api/playlist/:episodeId", desc:"Save episode to personal playlist", role:"listener"},
+    {m:"DELETE", path:"/api/playlist/:episodeId", desc:"Remove episode from playlist", role:"listener"},
+  ]},
+  {section:"File upload — AWS S3", routes:[
+    {m:"POST", path:"/api/upload/audio-presign", desc:"Get pre-signed S3 URL for audio file upload", role:"host"},
+    {m:"POST", path:"/api/upload/image-presign", desc:"Get pre-signed S3 URL for cover/thumbnail upload", role:"host"},
+    {m:"POST", path:"/api/upload/avatar-presign", desc:"Get pre-signed S3 URL for profile avatar upload", role:"all"},
+  ]},
+  {section:"Admin dashboard", routes:[
+    {m:"GET", path:"/api/admin/stats", desc:"Platform stats: total episodes, plays, hosts, listeners", role:"admin"},
+    {m:"GET", path:"/api/admin/episodes", desc:"All episodes with full status + host info", role:"admin"},
+  ]},
+  {section:"Master data (seed / config)", routes:[
+    {m:"GET",    path:"/api/master/content-types", desc:"List all episode categories", role:"public"},
+    {m:"POST",   path:"/api/master/content-types", desc:"Add new category", role:"admin"},
+    {m:"PATCH",  path:"/api/master/content-types/:id", desc:"Enable or disable a category", role:"admin"},
+    {m:"GET",    path:"/api/master/roles", desc:"List user roles", role:"admin"},
+    {m:"GET",    path:"/api/master/approval-statuses", desc:"List approval status values", role:"admin"},
+  ]},
+];
+
+const roleBadge = r => {
+  const map = {admin:'b-admin',host:'b-host',listener:'b-listener',public:'b-public',all:'b-all'};
+  const label = r === 'all' ? 'all roles' : r;
+  return `<span class="badge ${map[r]||'b-public'}">${label}</span>`;
+};
+
+const methodClass = m => ({GET:'m-get',POST:'m-post',PUT:'m-put',PATCH:'m-patch',DELETE:'m-delete'}[m]||'m-get');
+
+let currentFilter = 'all';
+
+function render(filterRole) {
+  const container = document.getElementById('routes-container');
+  container.innerHTML = '';
+  let total=0, gets=0, posts=0, puts=0, patches=0, dels=0;
+
+  routes.forEach(sec => {
+    const filtered = sec.routes.filter(r => {
+      if (filterRole === 'all') return true;
+      if (filterRole === 'admin') return r.role === 'admin';
+      if (filterRole === 'host') return r.role === 'host' || r.role === 'all';
+      if (filterRole === 'listener') return r.role === 'listener' || r.role === 'all' || r.role === 'public';
+      if (filterRole === 'public') return r.role === 'public';
+      return true;
+    });
+    if (!filtered.length) return;
+
+    const div = document.createElement('div');
+    div.className = 'section';
+    div.innerHTML = `<div class="section-header">${sec.section}</div>`;
+
+    filtered.forEach(r => {
+      total++;
+      if(r.m==='GET') gets++;
+      else if(r.m==='POST') posts++;
+      else if(r.m==='PUT') puts++;
+      else if(r.m==='PATCH') patches++;
+      else if(r.m==='DELETE') dels++;
+
+      const row = document.createElement('div');
+      row.className = 'route';
+      row.innerHTML = `
+        <span class="method ${methodClass(r.m)}">${r.m}</span>
+        <div class="route-info">
+          <div class="route-path">${r.path}</div>
+          <div class="route-desc">${r.desc}</div>
+        </div>
+        <div class="route-right">${roleBadge(r.role)}</div>
+      `;
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+
+  document.getElementById('total-count').textContent = total;
+  document.getElementById('get-count').textContent = gets;
+  document.getElementById('post-count').textContent = posts;
+  document.getElementById('put-count').textContent = puts;
+  document.getElementById('patch-count').textContent = patches;
+  document.getElementById('del-count').textContent = dels;
+}
+
+function filter(role) {
+  currentFilter = role;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  render(role);
+}
+
+render('all');
+</script>
