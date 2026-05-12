@@ -1,6 +1,7 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const multer = require('multer');
 
+// S3 Client Configuration
 const s3Client = new S3Client({
     region: process.env.AWS_REGION,
     credentials: {
@@ -9,72 +10,90 @@ const s3Client = new S3Client({
     }
 });
 
-// @desc    Get pre-signed S3 URL for audio upload
-// @route   POST /api/upload/audio-presign
+// Multer Configuration (Memory Storage)
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+/**
+ * Generic function to upload a file to S3
+ */
+const uploadToS3 = async (file, folder) => {
+    const key = `${folder}/${Date.now()}-${file.originalname}`;
+    const command = new PutObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+    });
+
+    await s3Client.send(command);
+    
+    // Return the public URL (assuming bucket is public or using a CDN)
+    return {
+        key: key,
+        url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`
+    };
+};
+
+// @desc    Upload Audio File (Direct)
+// @route   POST /api/upload/audio
 // @access  Host
-const getAudioPresign = async (req, res) => {
-    const { fileName, fileType } = req.body;
-    const key = `audio/${req.user._id}/${Date.now()}-${fileName}`;
+const uploadAudio = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'Please upload an audio file' });
+    }
 
     try {
-        const command = new PutObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: key,
-            ContentType: fileType,
-        });
-
-        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-        res.json({ url, key });
+        const folder = `audio/${req.user._id}`;
+        const result = await uploadToS3(req.file, folder);
+        res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// @desc    Get pre-signed S3 URL for cover/thumbnail upload
-// @route   POST /api/upload/image-presign
+// @desc    Upload Image File (Direct)
+// @route   POST /api/upload/image
 // @access  Host
-const getImagePresign = async (req, res) => {
-    const { fileName, fileType, type } = req.body; // type: 'channel' or 'episode'
-    const folder = type === 'channel' ? 'covers/channels' : 'covers/episodes';
-    const key = `${folder}/${Date.now()}-${fileName}`;
+const uploadImage = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'Please upload an image file' });
+    }
+
+    const { type } = req.body; // 'channel' or 'episode'
+    if (!type) {
+        return res.status(400).json({ message: 'Type (channel or episode) is required' });
+    }
 
     try {
-        const command = new PutObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: key,
-            ContentType: fileType,
-        });
-
-        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-        res.json({ url, key });
+        const folder = type === 'channel' ? 'covers/channels' : 'covers/episodes';
+        const result = await uploadToS3(req.file, folder);
+        res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// @desc    Get pre-signed S3 URL for profile avatar upload
-// @route   POST /api/upload/avatar-presign
+// @desc    Upload Avatar (Direct)
+// @route   POST /api/upload/avatar
 // @access  All
-const getAvatarPresign = async (req, res) => {
-    const { fileName, fileType } = req.body;
-    const key = `avatars/${req.user._id}/${Date.now()}-${fileName}`;
+const uploadAvatar = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'Please upload an image file' });
+    }
 
     try {
-        const command = new PutObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: key,
-            ContentType: fileType,
-        });
-
-        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-        res.json({ url, key });
+        const folder = `avatars/${req.user._id}`;
+        const result = await uploadToS3(req.file, folder);
+        res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
 module.exports = {
-    getAudioPresign,
-    getImagePresign,
-    getAvatarPresign
+    upload, // Exporting multer instance to use in routes
+    uploadAudio,
+    uploadImage,
+    uploadAvatar
 };
