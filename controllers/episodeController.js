@@ -16,36 +16,51 @@ const uploadEpisode = async (req, res) => {
     try {
         const pendingStatus = await MasterApprovalStatus.findOne({ approval_code: 'PENDING' });
         
-        // Find content type by name if ID is not provided
+        // Find content type (Podcast by default if search fails)
         let contentTypeId = req.body.content_type_id;
-        if (!contentTypeId && category_name) {
+        if (!contentTypeId) {
+            const searchName = category_name ? category_name.split(' ')[0] : 'Podcast'; // Use first word for better match
             const contentType = await MasterContentType.findOne({ 
-                type_description: new RegExp(category_name, 'i') 
+                type_description: new RegExp(searchName, 'i') 
             });
             if (contentType) contentTypeId = contentType._id;
+            else {
+                // Final fallback: get the first available content type
+                const fallback = await MasterContentType.findOne();
+                contentTypeId = fallback ? fallback._id : null;
+            }
         }
 
-        // Auto-assign channel if not provided (find user's first channel)
+        // Auto-assign channel or CREATE one if missing
         let finalChannelId = channel_id;
         if (!finalChannelId) {
-            const userChannel = await Channel.findOne({ user_id: req.user._id });
-            if (userChannel) finalChannelId = userChannel._id;
+            let userChannel = await Channel.findOne({ user_id: req.user._id });
+            if (!userChannel) {
+                // Create a default channel for the host if they don't have one
+                userChannel = await Channel.create({
+                    user_id: req.user._id,
+                    name: `${req.user.first_name}'s Channel`,
+                    description: 'My podcast channel'
+                });
+            }
+            finalChannelId = userChannel._id;
         }
 
         const episode = await Podcast.create({
             channel_id: finalChannelId,
             user_id: req.user._id,
-            title,
-            description,
+            title: title || 'Untitled Episode',
+            description: description || '',
             content_type_id: contentTypeId,
             audio_s3_key,
-            thumbnail_key,
+            thumbnail_key: thumbnail_key || '',
             duration_in_seconds: duration_in_seconds || 300,
             approval_status_id: pendingStatus._id
         });
 
         res.status(201).json(episode);
     } catch (error) {
+        console.error('EPISODE CREATION ERROR:', error);
         res.status(400).json({ message: error.message });
     }
 };
