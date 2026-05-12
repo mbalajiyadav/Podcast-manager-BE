@@ -33,10 +33,7 @@ const approvalStatuses = [
 
 const seedDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || process.env.DB_HOST, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(process.env.MONGODB_URI || process.env.DB_HOST);
 
         console.log('Clearing existing master data...');
         await MasterRole.deleteMany({});
