@@ -2,6 +2,9 @@ const User = require('../models/User');
 const Podcast = require('../models/Podcast');
 const PlayHistory = require('../models/PlayHistory');
 const MasterRole = require('../models/MasterRole');
+const MasterApprovalStatus = require('../models/MasterApprovalStatus');
+const MasterContentType = require('../models/MasterContentType');
+const Channel = require('../models/Channel');
 
 // @desc    Get platform stats
 // @route   GET /api/admin/stats

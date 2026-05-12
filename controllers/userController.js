@@ -8,7 +8,10 @@ const getUsers = async (req, res) => {
         const { role, status, search } = req.query;
         let query = {};
 
-        if (role) query.role_id = role;
+        if (role) {
+            const roleObj = await require('../models/MasterRole').findOne({ role_code: role });
+            if (roleObj) query.role_id = roleObj._id;
+        }
         if (status !== undefined) query.is_active = status === 'active';
         if (search) {
             query.$or = [

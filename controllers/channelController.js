@@ -1,5 +1,8 @@
 const Channel = require('../models/Channel');
 const Podcast = require('../models/Podcast');
+const MasterContentType = require('../models/MasterContentType');
+const MasterApprovalStatus = require('../models/MasterApprovalStatus');
+const User = require('../models/User');
 
 // @desc    Create new channel
 // @route   POST /api/channels

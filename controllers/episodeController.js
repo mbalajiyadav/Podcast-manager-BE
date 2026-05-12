@@ -1,8 +1,11 @@
 const Podcast = require('../models/Podcast');
 const MasterApprovalStatus = require('../models/MasterApprovalStatus');
+const MasterContentType = require('../models/MasterContentType');
 const EpisodeLike = require('../models/EpisodeLike');
 const PlayHistory = require('../models/PlayHistory');
 const Playlist = require('../models/Playlist');
+const User = require('../models/User');
+const Channel = require('../models/Channel');
 
 // @desc    Upload new episode
 // @route   POST /api/episodes
