@@ -149,19 +149,26 @@ const getEpisodeById = async (req, res) => {
         }
 
         // Add the dynamic URL to the response
-        // Check if current user is following this channel
+        // Check if current user is following this channel and has saved this episode
         let isFollowing = false;
+        let isSaved = false;
+
         if (req.user) {
-            const User = require('../models/User');
-            const currentUser = await User.findById(req.user.id);
+            // Check following
+            const currentUser = await User.findById(req.user._id);
             if (currentUser && currentUser.followed_channels) {
-                isFollowing = currentUser.followed_channels.includes(episode.channel_id?._id);
+                isFollowing = currentUser.followed_channels.some(id => id.toString() === episode.channel_id?._id?.toString());
             }
+
+            // Check saved to playlist
+            const savedItem = await Playlist.findOne({ user_id: req.user._id, podcast_id: id });
+            isSaved = !!savedItem;
         }
 
         const episodeData = episode.toObject();
         episodeData.playback_url = audioUrl;
         episodeData.isFollowing = isFollowing;
+        episodeData.isSaved = isSaved;
 
         res.json(episodeData);
     } catch (error) {
