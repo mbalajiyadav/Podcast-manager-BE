@@ -34,13 +34,14 @@ const uploadEpisode = async (req, res) => {
         // Auto-assign channel or CREATE one if missing
         let finalChannelId = channel_id;
         if (!finalChannelId) {
-            let userChannel = await Channel.findOne({ user_id: req.user._id });
+            let userChannel = await Channel.findOne({ host_id: req.user._id });
             if (!userChannel) {
                 // Create a default channel for the host if they don't have one
                 userChannel = await Channel.create({
-                    user_id: req.user._id,
+                    host_id: req.user._id,
                     name: `${req.user.first_name}'s Channel`,
-                    description: 'My podcast channel'
+                    description: 'My podcast channel',
+                    category_id: contentTypeId // Use the same category as the episode
                 });
             }
             finalChannelId = userChannel._id;
