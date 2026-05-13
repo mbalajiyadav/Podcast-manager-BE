@@ -17,14 +17,17 @@ const {
 } = require('../controllers/episodeController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
+// Host/Specific routes (Must come before /:id)
+router.get('/my', protect, authorize('HOST'), getMyEpisodes);
+router.get('/pending', protect, authorize('ADMIN'), getPendingEpisodes);
+
 // Public routes
 router.get('/', getEpisodes);
 router.get('/:id', getEpisodeById);
-router.post('/:id/play', logPlay); // Optional: can be protect but keeping simple as per spec
+router.post('/:id/play', logPlay);
 
-// Host routes
+// Host routes (continued)
 router.post('/', protect, authorize('HOST'), uploadEpisode);
-router.get('/my', protect, authorize('HOST'), getMyEpisodes);
 router.put('/:id', protect, authorize('HOST'), updateEpisode);
 router.delete('/:id', protect, authorize('HOST'), deleteEpisode);
 
