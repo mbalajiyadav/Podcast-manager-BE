@@ -97,33 +97,35 @@ const getEpisodes = async (req, res) => {
 // @route   GET /api/episodes/:id
 // @access  Public
 const getEpisodeById = async (req, res) => {
+    const { id } = req.params;
+    console.log(`FETCHING EPISODE: ${id}`);
+
     try {
-        const episode = await Podcast.findById(req.params.id)
+        const episode = await Podcast.findById(id)
             .populate('channel_id')
             .populate('content_type_id')
             .populate('approval_status_id')
             .populate('user_id', 'first_name last_name');
 
-        if (episode) {
-            // Business rule: Only show approved episodes to public/listeners
-            // Hosts can see their own even if pending
-            const approvedStatus = await MasterApprovalStatus.findOne({ approval_code: 'APPROVED' });
-            
-            // Allow access if:
-            // 1. Episode is approved
-            // 2. User is an Admin
-            // 3. User is the Host who uploaded it
-            const isAdmin = req.user && req.user.role_id && req.user.role_id.role_code === 'ADMIN';
-            const isOwner = req.user && req.user._id.toString() === episode.user_id._id.toString();
-
-            if (episode.approval_status_id.approval_code !== 'APPROVED' && !isAdmin && !isOwner) {
-                return res.status(403).json({ message: 'Episode not yet approved' });
-            }
-            res.json(episode);
-        } else {
-            res.status(404).json({ message: 'Episode not found' });
+        if (!episode) {
+            console.log(`EPISODE NOT FOUND IN DB: ${id}`);
+            return res.status(404).json({ message: 'Episode not found' });
         }
+
+        // Allow access if:
+        // 1. Episode is approved
+        // 2. User is an Admin
+        // 3. User is the Host who uploaded it
+        const isAdmin = req.user && req.user.role_id && req.user.role_id.role_code === 'ADMIN';
+        const isOwner = req.user && req.user._id.toString() === episode.user_id._id.toString();
+
+        if (episode.approval_status_id.approval_code !== 'APPROVED' && !isAdmin && !isOwner) {
+            return res.status(403).json({ message: 'Episode not yet approved' });
+        }
+
+        res.json(episode);
     } catch (error) {
+        console.error('FETCH ERROR:', error);
         res.status(500).json({ message: error.message });
     }
 };
