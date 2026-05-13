@@ -132,14 +132,14 @@ const getEpisodeById = async (req, res) => {
             try {
                 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
                 const { GetObjectCommand } = require("@aws-sdk/client-s3");
-                const { s3Client } = require("./uploadController"); // Use existing lazy client
+                const { getS3Client } = require("./uploadController"); 
 
                 const command = new GetObjectCommand({
                     Bucket: process.env.AWS_BUCKET_NAME,
                     Key: episode.audio_s3_key,
                 });
 
-                audioUrl = await getSignedUrl(s3Client(), command, { expiresIn: 3600 });
+                audioUrl = await getSignedUrl(getS3Client(), command, { expiresIn: 3600 });
             } catch (s3Error) {
                 console.error("Error generating signed URL:", s3Error);
             }

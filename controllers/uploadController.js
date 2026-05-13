@@ -151,5 +151,6 @@ module.exports = {
     uploadAudio,
     uploadImage,
     uploadAvatar,
-    getPresignedUrl
+    getPresignedUrl,
+    getS3Client
 };
