@@ -50,7 +50,11 @@ const userSchema = new mongoose.Schema({
     created_by: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
-    }
+    },
+    followed_channels: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Channel'
+    }]
 });
 
 userSchema.pre('save', async function() {

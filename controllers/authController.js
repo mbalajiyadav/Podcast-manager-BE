@@ -89,7 +89,13 @@ const loginUser = async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private
 const getMe = async (req, res) => {
-    const user = await User.findById(req.user._id).populate('role_id');
+    const user = await User.findById(req.user._id)
+        .populate('role_id')
+        .populate({
+            path: 'followed_channels',
+            populate: { path: 'host_id', select: 'first_name last_name' }
+        });
+
     if (user) {
         res.json({
             _id: user._id,
@@ -99,7 +105,8 @@ const getMe = async (req, res) => {
             role: user.role_id.role_code,
             phone_number: user.phone_number,
             age: user.age,
-            profile_image_key: user.profile_image_key
+            profile_image_key: user.profile_image_key,
+            followed_channels: user.followed_channels
         });
     } else {
         res.status(404).json({ message: 'User not found' });

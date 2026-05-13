@@ -34,8 +34,32 @@ const getUsers = async (req, res) => {
 const getUserById = async (req, res) => {
     try {
         const user = await User.findById(req.params.id).populate('role_id');
-        if (user) res.json(user);
-        else res.status(404).json({ message: 'User not found' });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const userData = user.toObject();
+
+        // If user is a host, fetch their stats
+        if (user.role_id && user.role_id.role_code === 'HOST') {
+            const Podcast = require('../models/Podcast');
+            const episodes = await Podcast.find({ user_id: user._id }).populate('approval_status_id');
+            
+            userData.stats = {
+                totalEpisodes: episodes.length,
+                totalPlays: episodes.reduce((acc, ep) => acc + (ep.views_count || 0), 0),
+                approved: episodes.filter(ep => ep.approval_status_id?.approval_code === 'APPROVED').length,
+                rejected: episodes.filter(ep => ep.approval_status_id?.approval_code === 'REJECTED').length
+            };
+
+            // Also include their recent episodes for the admin to see
+            userData.recentEpisodes = episodes.slice(0, 5).map(ep => ({
+                id: ep._id,
+                title: ep.title,
+                duration: `${Math.floor(ep.duration_in_seconds / 60)} min`,
+                status: ep.approval_status_id?.approval_code
+            }));
+        }
+
+        res.json(userData);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -76,9 +100,33 @@ const deleteUser = async (req, res) => {
     }
 };
 
+// @desc    Toggle follow/unfollow a channel
+// @route   POST /api/users/follow/:channelId
+// @access  Private
+const toggleFollowChannel = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        const channelId = req.params.channelId;
+
+        const isFollowing = user.followed_channels.includes(channelId);
+
+        if (isFollowing) {
+            user.followed_channels = user.followed_channels.filter(id => id.toString() !== channelId);
+        } else {
+            user.followed_channels.push(channelId);
+        }
+
+        await user.save();
+        res.json({ success: true, isFollowing: !isFollowing });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getUsers,
     getUserById,
     updateUserStatus,
-    deleteUser
+    deleteUser,
+    toggleFollowChannel
 };

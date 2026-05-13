@@ -149,8 +149,19 @@ const getEpisodeById = async (req, res) => {
         }
 
         // Add the dynamic URL to the response
+        // Check if current user is following this channel
+        let isFollowing = false;
+        if (req.user) {
+            const User = require('../models/User');
+            const currentUser = await User.findById(req.user.id);
+            if (currentUser && currentUser.followed_channels) {
+                isFollowing = currentUser.followed_channels.includes(episode.channel_id?._id);
+            }
+        }
+
         const episodeData = episode.toObject();
         episodeData.playback_url = audioUrl;
+        episodeData.isFollowing = isFollowing;
 
         res.json(episodeData);
     } catch (error) {
