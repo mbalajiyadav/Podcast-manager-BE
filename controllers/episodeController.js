@@ -102,7 +102,10 @@ const getEpisodeById = async (req, res) => {
 
     try {
         const episode = await Podcast.findById(id)
-            .populate('channel_id')
+            .populate({
+                path: 'channel_id',
+                populate: { path: 'host_id', select: 'first_name last_name' }
+            })
             .populate('content_type_id')
             .populate('approval_status_id')
             .populate('user_id', 'first_name last_name');
@@ -123,7 +126,30 @@ const getEpisodeById = async (req, res) => {
             return res.status(403).json({ message: 'Episode not yet approved' });
         }
 
-        res.json(episode);
+        // Generate pre-signed URL for playback if s3 key exists
+        let audioUrl = episode.content_url;
+        if (episode.audio_s3_key) {
+            try {
+                const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+                const { GetObjectCommand } = require("@aws-sdk/client-s3");
+                const { s3Client } = require("./uploadController"); // Use existing lazy client
+
+                const command = new GetObjectCommand({
+                    Bucket: process.env.AWS_BUCKET_NAME,
+                    Key: episode.audio_s3_key,
+                });
+
+                audioUrl = await getSignedUrl(s3Client(), command, { expiresIn: 3600 });
+            } catch (s3Error) {
+                console.error("Error generating signed URL:", s3Error);
+            }
+        }
+
+        // Add the dynamic URL to the response
+        const episodeData = episode.toObject();
+        episodeData.playback_url = audioUrl;
+
+        res.json(episodeData);
     } catch (error) {
         console.error('FETCH ERROR:', error);
         res.status(500).json({ message: error.message });
