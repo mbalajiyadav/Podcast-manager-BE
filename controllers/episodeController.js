@@ -83,7 +83,10 @@ const getEpisodes = async (req, res) => {
         }
 
         const episodes = await Podcast.find(query)
-            .populate('channel_id', 'name cover_image_key')
+            .populate({
+                path: 'channel_id',
+                populate: { path: 'host_id', select: 'first_name last_name' }
+            })
             .populate('content_type_id', 'type_description')
             .sort({ created_on: -1 });
 
