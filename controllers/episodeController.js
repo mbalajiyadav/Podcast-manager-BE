@@ -108,8 +108,15 @@ const getEpisodeById = async (req, res) => {
             // Business rule: Only show approved episodes to public/listeners
             // Hosts can see their own even if pending
             const approvedStatus = await MasterApprovalStatus.findOne({ approval_code: 'APPROVED' });
-            if (episode.approval_status_id.approval_code !== 'APPROVED' &&
-                (!req.user || req.user._id.toString() !== episode.user_id._id.toString())) {
+            
+            // Allow access if:
+            // 1. Episode is approved
+            // 2. User is an Admin
+            // 3. User is the Host who uploaded it
+            const isAdmin = req.user && req.user.role_id && req.user.role_id.role_code === 'ADMIN';
+            const isOwner = req.user && req.user._id.toString() === episode.user_id._id.toString();
+
+            if (episode.approval_status_id.approval_code !== 'APPROVED' && !isAdmin && !isOwner) {
                 return res.status(403).json({ message: 'Episode not yet approved' });
             }
             res.json(episode);
